@@ -49,14 +49,20 @@ class NMA_3D:
         self.dvz, self.dphi = (self.vz_max-self.vz_min) / \
             self.nvz, (self.phi_max-self.phi_min)/self.nphi
         
+        # self.eta_* are the paremeters set assume perfect integration for the given
+        # degree of freedom when only 1 bin is specified.
         if self.nvz > 1:
             self.vz = self.vz_min + (np.arange(0, self.nvz) + 0.5)*self.dvz
+            self.eta_vz = 1
         else:
             self.vz = np.array([self.vz_min,])
+            self.eta_vz = 1
         if self.nphi > 1:
             self.phi = self.phi_min + (np.arange(0, self.nphi) + 0.5)*self.dphi
+            self.eta_phi = 1
         else:
             self.phi = np.array([self.phi_min,])
+            self.eta_phi = 0
 
         return None
 
@@ -170,7 +176,15 @@ class NMA_3D:
         print(f"Max Iy: {np.abs(Iy).max():.4E}")
         print(f"Max Iz: {np.abs(Iz).max():.4E}")
 
-        return (A0, Ax, Ay, Az, I0, Ix, Iy, Iz)
+        return (
+            A0, 
+            self.eta_phi * Ax, 
+            self.eta_phi * Ay, 
+            self.eta_vz * Az, 
+            I0, self.eta_phi * Ix, 
+            self.eta_phi * Iy, 
+            self.eta_vz * Iz,
+        )
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
