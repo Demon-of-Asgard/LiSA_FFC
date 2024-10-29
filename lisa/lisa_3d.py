@@ -43,10 +43,20 @@ class NMA_3D:
         assert self.phi_max > self.phi_min, 'phi_max must be larger than phi_min'
 
         self.nvz, self.nphi = ELN_params['nvz'], ELN_params['nphi']
+        assert self.nvz >= 1, "Value of nvz must be >=1 "
+        assert self.nphi >= 1, "Value of nphi must be >=1 "
+
         self.dvz, self.dphi = (self.vz_max-self.vz_min) / \
             self.nvz, (self.phi_max-self.phi_min)/self.nphi
-        self.vz = self.vz_min + (np.arange(0, self.nvz) + 0.5)*self.dvz
-        self.phi = self.phi_min + (np.arange(0, self.nphi) + 0.5)*self.dphi
+        
+        if self.nvz > 1:
+            self.vz = self.vz_min + (np.arange(0, self.nvz) + 0.5)*self.dvz
+        else:
+            self.vz = np.array([self.vz_min,])
+        if self.nphi > 1:
+            self.phi = self.phi_min + (np.arange(0, self.nphi) + 0.5)*self.dphi
+        else:
+            self.phi = np.array([self.phi_min,])
 
         return None
 
@@ -278,6 +288,7 @@ class NMA_3D:
 
             print(f"\r{'['}{'='*3}{'='*3}] {100}%", end="")
             sys.stdout.flush()
+            print("\n")
 
             result = {
                 'O_i': o_i,
@@ -298,16 +309,38 @@ class NMA_3D:
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
 
     def plot_eln(self, store_to) -> None:
-        eln_arr = np.zeros((self.nvz, self.nphi))
-        for vzid, vz in enumerate(self.vz):
-            for phid, phi in enumerate(self.phi):
-                eln_arr[vzid][phid] = self.ELN(vz, phi)
+        fig, ax = plt.subplots()
+        if self.nvz > 1 and self.nphi > 1:
+            eln_arr = np.zeros((self.nvz, self.nphi))
+            for vzid, vz in enumerate(self.vz):
+                for phid, phi in enumerate(self.phi):
+                    eln_arr[vzid][phid] = self.ELN(vz, phi)
 
-        plt.contourf(self.phi/np.pi, self.vz, eln_arr,
-                     levels=self.nvz, cmap="RdBu_r")
-        plt.colorbar()
-        plt.savefig(store_to, dpi=150)
+            img=ax.contourf(self.phi/np.pi, self.vz, eln_arr,
+                        levels=self.nvz, cmap="magma")
+            ax.set_xlabel(r"$\phi/\pi$")
+            ax.set_ylabel(r"$v_z$")
+            plt.colorbar(img, ax=ax)
+            
+        elif self.nphi == 1:
+            ax.plot(self.vz, self.ELN(self.vz, self.phi))
+            ax.hlines(0, self.vz.min(), self.vz.max(), color="k", ls=":")
+            ax.set_xlim(self.vz.min(), self.vz.max())
+            ax.set_xlabel(r"$v_z$")
+            ax.set_ylabel(r"ELN")
+
+        elif self.nvz == 1:
+            ax.plot(self.phi/np.pi, self.ELN(self.vz, self.phi))
+            ax.hlines(0, (self.phi/np.pi).min(), (self.phi/np.pi).max(), color="k", ls=":")
+            ax.set_xlim((self.phi/np.pi).min(), (self.phi/np.pi).max())
+            ax.set_xlabel(r"$\phi/\pi$")
+            ax.set_ylabel(r"ELN")
+
+
+        plt.suptitle("ELN")
+        plt.savefig(store_to, dpi=150, bbox_inches="tight")
         print(f"ELN plot saved to {store_to}")
+
         return
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
